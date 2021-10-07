@@ -9,6 +9,7 @@ enum CommandType {
   session_start,
   session_test,
   session_stop,
+  command_exit,
 };
 struct Command {
   CommandType type;

@@ -9,9 +9,11 @@ Command ::Command(std::string target) {
   } else if (res[0] == "test" && res.size() == 2) {
     type = session_test;
     para = factory.stringTo<int>(res[1]);
-  } else if (res[1] == "stop" && res.size() == 1) {
+  } else if (res[0] == "stop" && res.size() == 1) {
     type = session_stop;
     para = 0;
+  } else if (res[0] == "exit" && res.size() == 1) {
+    type = command_exit;
   } else {
     type = command_invalid;
   }

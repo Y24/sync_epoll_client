@@ -33,10 +33,13 @@ class EventHandler {
   std::unordered_map<int, int> localPool;
   /// whether paired
   std::unordered_map<int, bool> flag;
-  void do_read(int fd, std::unordered_map<int, DemoData> &data);
-  void do_write(int fd, std::unordered_map<int, DemoData> &data);
-  void do_clean();
-  void do_test(std::unordered_map<int, DemoData> &data);
+  std::vector<std::string> logPool;
+  std::vector<time_t> timePool;
+  void outputTestResult(DemoData &data);
+  void doRead(int fd, std::unordered_map<int, DemoData> &data);
+  void doWrite(int fd, std::unordered_map<int, DemoData> &data);
+  void doClean();
+  void doTest(std::unordered_map<int, DemoData> &data);
 
  public:
   EventHandler(int epollFd, std::string ip, int port);

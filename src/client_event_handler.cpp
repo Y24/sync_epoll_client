@@ -7,7 +7,7 @@ EventHandler::EventHandler(int epollFd, std::string ip, int port)
       sessionProductor(SessionProductor(ip, port)) {
   eventManager.add_event(STDIN_FILENO, EPOLLIN);
 }
-void EventHandler::do_clean() {
+void EventHandler::doClean() {
   // clean work
   for (auto [fd, _] : localPool) {
     close(fd);
@@ -17,26 +17,38 @@ void EventHandler::do_clean() {
   localPool.clear();
   flag.clear();
 }
-void EventHandler::do_test(std::unordered_map<int, DemoData> &data) {
+void EventHandler::doTest(std::unordered_map<int, DemoData> &data) {
   for (auto [first, second] : localPool) {
     if (flag[first] && localPool.count(first) && localPool.count(second) &&
         flag[localPool[second]]) {
-      data[first] = DemoData(delivery_data, factory.toString(time(nullptr)),
+      auto cur = time(nullptr);
+      timePool.emplace_back(cur);
+      data[first] = DemoData(delivery_data, factory.toString(cur),
                              ContentGenerator().generate(nContent));
-      eventManager.modify_event(first, EPOLLOUT);
+      eventManager.add_event(first, EPOLLOUT);
+      eventManager.add_event(second, EPOLLIN);
     }
   }
 }
-void EventHandler::do_read(int fd, std::unordered_map<int, DemoData> &data) {
+void EventHandler::outputTestResult(DemoData &data) {
+  time_t cur = time(nullptr);
+  timePool.emplace_back(cur);
+  time_t origin = factory.stringTo<time_t>(data.getHeader().timestamp);
+  fprintf(stdout, "Time delay: %lf ms\n",
+          ((double)cur - origin) / CLOCKS_PER_SEC * 1000);
+  fprintf(stdout, "Data content: %s\n",
+          data.getBody().content.substr(0, 10).c_str());
+}
+void EventHandler::doRead(int fd, std::unordered_map<int, DemoData> &data) {
   if (fd == STDIN_FILENO) {
     auto command = commandHandler.get(fd);
     std::vector<Session> sessions;
     switch (command.type) {
       case command_invalid:
-        fprintf(stderr, "Input command is invalid!\n");
+        fprintf(stderr, "?_? Input command is invalid!\n");
         break;
       case session_start:
-        do_clean();
+        doClean();
         sessions = sessionProductor.produce(2 * command.para);
         for (int i = 0; i < 2 * command.para; i += 2) {
           int fd1 = sessions[i].getFd().begin()->first;
@@ -47,14 +59,22 @@ void EventHandler::do_read(int fd, std::unordered_map<int, DemoData> &data) {
           localPool[fd2] = fd1;
           flag[fd1] = flag[fd2] = false;
         }
+        fprintf(stdout, "#_# %d Sessions start successful!\n", command.para);
         break;
       case session_test:
         nContent = command.para;
-        do_test(data);
+        fprintf(stdout,
+                "^_^ With content length %d, the test result follows: \n",
+                command.para);
+        doTest(data);
         break;
       case session_stop:
-        do_clean();
+        doClean();
+        fprintf(stdout, ">_< All sessions stop successful!\n");
         break;
+      case command_exit:
+        doClean();
+        fprintf(stdout, "&_& See you!\n");
       default:
         break;
     }
@@ -62,6 +82,9 @@ void EventHandler::do_read(int fd, std::unordered_map<int, DemoData> &data) {
   }
   IOHandler ioHandler(fd);
   auto res = ioHandler.read();
+  std::string log =
+      "do_read: fd:" + std::to_string(fd) + " ,res: " + res.toStr().c_str();
+  logPool.emplace_back(log);
   std::vector<int> destination;
   int remoteFd;
   switch (res.getHeader().type) {
@@ -72,6 +95,7 @@ void EventHandler::do_read(int fd, std::unordered_map<int, DemoData> &data) {
     case conn_close:
       if (!sessionManager.detach(fd)) {
         fprintf(stderr, "ClientEventHandler do_read: conn_close fails\n");
+        exit(EXIT_FAILURE);
       }
       break;
     case session_init:
@@ -82,6 +106,7 @@ void EventHandler::do_read(int fd, std::unordered_map<int, DemoData> &data) {
         fprintf(stderr,
                 "ClientEventHandler do_read: session_init remotePoll check "
                 "fails\n");
+        exit(EXIT_FAILURE);
       }
       remotePool[fd] = remoteFd;
       flag[fd] = true;
@@ -89,41 +114,48 @@ void EventHandler::do_read(int fd, std::unordered_map<int, DemoData> &data) {
         fprintf(stderr,
                 "ClientEventHandler do_read: session_init localPool check "
                 "fails\n");
-      } else if (flag[localPool[fd]]) {
-        sessionManager.merge({fd, localPool[fd]});
-      } else {
-        /// do session_pair
+        exit(EXIT_FAILURE);
+      }
+      if (remotePool.count(localPool[fd])) {
         data[fd] =
             DemoData(session_pair, factory.toString(remotePool[localPool[fd]]));
         eventManager.modify_event(fd, EPOLLOUT);
       }
       break;
     case session_pair:
-      /// Igonor on client side by default.
+      // well, session_pair singal from server side indicates the pairing
+      // result.
+      if (res.getBody().content == "OK") {
+        sessionManager.merge({fd, localPool[fd]});
+      } else {
+        sessionManager.detach(fd);
+      }
+      eventManager.add_event(fd, EPOLLIN);
+      eventManager.add_event(localPool[fd], EPOLLIN);
       break;
     case delivery_data:
-      eventManager.add_event(STDOUT_FILENO, EPOLLOUT);
+      outputTestResult(res);
+      data.erase(fd);
       break;
     default:
       fprintf(stderr, "ClientEventHandler do_read reach default case!\n");
+      exit(EXIT_FAILURE);
       break;
   }
 }
-void EventHandler ::do_write(int fd, std::unordered_map<int, DemoData> &data) {
+void EventHandler ::doWrite(int fd, std::unordered_map<int, DemoData> &data) {
   if (fd == STDOUT_FILENO) {
-    time_t cur = time(nullptr);
-    tm *begin = new tm;
-    strftime(data[fd].getHeader().timestamp.data(), 64, "%Y-%m-%d %H:%M:%S",
-             begin);
-    fprintf(stdout, "Time delay: %lf ms\n",
-            (double)cur - mktime(begin) / CLOCKS_PER_SEC * 1000);
-    fprintf(stdout, "Data content: \n");
-    delete begin;
+    eventManager.delete_event(fd, EPOLLOUT);
+    return;
   }
+  std::string log = "do_write: fd:" + std::to_string(fd) +
+                    " ,res: " + data[fd].toStr().c_str();
+  logPool.emplace_back(log);
   IOHandler ioHandler(fd);
   if (!ioHandler.write(data[fd])) {
-    eventManager.delete_event(fd, EPOLLOUT);
+    fprintf(stderr, "ClientEventHandler do_write fails!\n");
   }
+  eventManager.delete_event(fd, EPOLLOUT);
   // clean work
   data.erase(fd);
 }
@@ -132,8 +164,8 @@ void EventHandler::handle(epoll_event *events, int num,
   for (int i = 0; i < num; i++) {
     int fd = events[i].data.fd;
     if (events[i].events & EPOLLIN)
-      do_read(fd, data);
+      doRead(fd, data);
     else if (events[i].events & EPOLLOUT)
-      do_write(fd, data);
+      doWrite(fd, data);
   }
 }
