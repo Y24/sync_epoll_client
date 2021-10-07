@@ -10,7 +10,7 @@ DemoData::DemoData(DataType type, std::string timestamp, std::string content) {
   this->header.timestamp = timestamp;
   this->body.content = content;
 }
-/// Layout: type(1 char) nTimestamp(1 char) timestamp(time_t) content
+/// Layout: type(1 char) nTimestamp(int64_t) timestamp() content
 DemoData::DemoData(std::string source) {
   if (source == "")
     this->header.type = data_invalid;

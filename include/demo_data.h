@@ -1,8 +1,9 @@
 #ifndef _DEMO_DATA_H
 #define _DEMO_DATA_H 1
-#include <ctime>
+#include <chrono>
 #include <sstream>
 #include <string>
+
 #include "data_factory.h"
 enum DataType {
   data_invalid,
@@ -21,6 +22,9 @@ struct DataBody {
 };
 class DemoData {
  private:
+  typedef std::chrono::time_point<std::chrono::steady_clock,
+                                  std::chrono::microseconds>
+      MicroClockType;
   DataHeader header;
   DataBody body;
   static const DataFactory factory;
@@ -30,8 +34,19 @@ class DemoData {
   DemoData(DataType type);
   DemoData(DataType type, std::string content);
   DemoData(DataType type, std::string timestamp, std::string content);
-  /// Layout: type(1 char) nTimestamp(1 char) timestamp(time_t) content
+  /// Layout: type(1 char) nTimestamp(int64_t) timestamp() content
   DemoData(std::string source);
+  // microsecond: since epoch
+  static int64_t diff(std::string begin, std::string end) {
+    return factory.stringTo<int64_t>(end) - factory.stringTo<int64_t>(begin);
+  }
+  // microsecond: since epoch
+  static std::string now() {
+    MicroClockType cur =
+        std::chrono::time_point_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now());
+    return factory.toString<int64_t>(cur.time_since_epoch().count());
+  }
   std::string toStr() const;
   long long getSize() const;
   bool isNull() const;

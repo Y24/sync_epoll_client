@@ -21,9 +21,7 @@ void EventHandler::doTest(std::unordered_map<int, DemoData> &data) {
   for (auto [first, second] : localPool) {
     if (flag[first] && localPool.count(first) && localPool.count(second) &&
         flag[localPool[second]]) {
-      auto cur = time(nullptr);
-      timePool.emplace_back(cur);
-      data[first] = DemoData(delivery_data, factory.toString(cur),
+      data[first] = DemoData(delivery_data, DemoData().now(),
                              ContentGenerator().generate(nContent));
       eventManager.add_event(first, EPOLLOUT);
       eventManager.add_event(second, EPOLLIN);
@@ -31,11 +29,8 @@ void EventHandler::doTest(std::unordered_map<int, DemoData> &data) {
   }
 }
 void EventHandler::outputTestResult(DemoData &data) {
-  time_t cur = time(nullptr);
-  timePool.emplace_back(cur);
-  time_t origin = factory.stringTo<time_t>(data.getHeader().timestamp);
-  fprintf(stdout, "Time delay: %lf ms\n",
-          ((double)cur - origin) / CLOCKS_PER_SEC * 1000);
+  fprintf(stdout, "Time delay: %d microsecond\n",
+          DemoData().diff(data.getHeader().timestamp, DemoData().now()));
   fprintf(stdout, "Data content: %s\n",
           data.getBody().content.substr(0, 10).c_str());
 }
@@ -75,6 +70,7 @@ void EventHandler::doRead(int fd, std::unordered_map<int, DemoData> &data) {
       case command_exit:
         doClean();
         fprintf(stdout, "&_& See you!\n");
+        exit(EXIT_SUCCESS);
       default:
         break;
     }
