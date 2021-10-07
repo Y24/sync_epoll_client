@@ -13,6 +13,7 @@ EpollManager::EpollManager(EpollManager& other)
       data(other.data),
       handler(other.handler) {}
 void EpollManager::work() {
+  fprintf(stdout, "%s", DirtyTalkGenerator().welcome().c_str());
   data = {};
   while (true) {
     int ret = epoll_wait(epollFd, events, nEvents, -1);

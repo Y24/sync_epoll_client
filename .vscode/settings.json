@@ -1,6 +1,6 @@
 {
         "files.associations": {
-                "*.h": "c",
+                "*.h": "cpp",
                 "array": "c",
                 "atomic": "c",
                 "bit": "c",

@@ -40,7 +40,8 @@ void EventHandler::doRead(int fd, std::unordered_map<int, DemoData> &data) {
     std::vector<Session> sessions;
     switch (command.type) {
       case command_invalid:
-        fprintf(stderr, "?_? Input command is invalid!\n");
+
+        fprintf(stderr, "?_? %s\n", talkGenerator.generator().c_str());
         break;
       case session_start:
         doClean();
@@ -82,6 +83,7 @@ void EventHandler::doRead(int fd, std::unordered_map<int, DemoData> &data) {
       "do_read: fd:" + std::to_string(fd) + " ,res: " + res.toStr().c_str();
   logPool.emplace_back(log);
   std::vector<int> destination;
+  std::pair<bool, int> remote;
   int remoteFd;
   switch (res.getHeader().type) {
     case data_invalid:
@@ -97,8 +99,9 @@ void EventHandler::doRead(int fd, std::unordered_map<int, DemoData> &data) {
     case session_init:
       /// session_init at client side serves as a trigger event of
       /// session_pair
-      remoteFd = factory.stringTo<int>(res.getBody().content);
-      if (remotePool.count(fd) == 1) {
+      remote = factory.stringTo<int>(res.getBody().content);
+      remoteFd = remote.second;
+      if (!remote.first || remotePool.count(fd) == 1) {
         fprintf(stderr,
                 "ClientEventHandler do_read: session_init remotePoll check "
                 "fails\n");

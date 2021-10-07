@@ -38,7 +38,9 @@ class DemoData {
   DemoData(std::string source);
   // microsecond: since epoch
   static int64_t diff(std::string begin, std::string end) {
-    return factory.stringTo<int64_t>(end) - factory.stringTo<int64_t>(begin);
+    auto [endFlag, endResult] = factory.stringTo<int64_t>(end);
+    auto [beginFlag, beginResult] = factory.stringTo<int64_t>(begin);
+    return endFlag && beginFlag ? endResult - beginResult : -1;
   }
   // microsecond: since epoch
   static std::string now() {

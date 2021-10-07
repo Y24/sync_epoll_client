@@ -14,6 +14,7 @@
 #include "command.h"
 #include "command_handler.h"
 #include "content_generator.h"
+#include "dirty_talk_generator.h"
 #include "event_manager.h"
 #include "io_handler.h"
 #include "session_manager.h"
@@ -27,6 +28,7 @@ class EventHandler {
   SessionProductor sessionProductor;
   DataFactory factory;
   CommandHandler commandHandler;
+  DirtyTalkGenerator talkGenerator;
   /// clientfd: serverfd
   std::unordered_map<int, int> remotePool;
   /// clientfd: clientfd in the same session
@@ -34,7 +36,6 @@ class EventHandler {
   /// whether paired
   std::unordered_map<int, bool> flag;
   std::vector<std::string> logPool;
-  std::vector<time_t> timePool;
   void outputTestResult(DemoData &data);
   void doRead(int fd, std::unordered_map<int, DemoData> &data);
   void doWrite(int fd, std::unordered_map<int, DemoData> &data);

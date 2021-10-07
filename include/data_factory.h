@@ -1,5 +1,6 @@
 #ifndef _DATA_FACTORY_H
 #define _DATA_FACTORY_H 1
+#include <sstream>
 class DataFactory {
  public:
   DataFactory() = default;
@@ -13,11 +14,11 @@ class DataFactory {
     return (char)t;
   }
   template <class T>
-  static T stringTo(std::string s) {
+  static std::pair<bool, T> stringTo(std::string s) {
     T res;
     std::istringstream is(s);
     is >> res;
-    return res;
+    return std::make_pair(toString(res).size() == s.size(), res);
   }
   template <class T>
   static std::string toString(T t) {
