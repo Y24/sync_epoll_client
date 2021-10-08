@@ -36,7 +36,7 @@ class DemoData {
   DemoData(DataType type, std::string timestamp, std::string content);
   /// Layout: type(1 char) nTimestamp(int64_t) timestamp() content
   DemoData(std::string source);
-  // microsecond: since epoch
+  // microsecond
   static int64_t diff(std::string begin, std::string end) {
     auto [endFlag, endResult] = factory.stringTo<int64_t>(end);
     auto [beginFlag, beginResult] = factory.stringTo<int64_t>(begin);

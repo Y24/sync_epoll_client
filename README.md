@@ -10,10 +10,6 @@ The client side code of a simple `relay server` using `sync epoll`.
 3. `stop`
 4. `exit`
 
-## TODO
-
-1. use the average time delay of all sessions as the final result.
-
 ## Code Review
 
 1. Bad error handler

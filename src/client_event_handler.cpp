@@ -18,6 +18,7 @@ void EventHandler::doClean() {
   flag.clear();
 }
 void EventHandler::doTest(std::unordered_map<int, DemoData> &data) {
+  testDataHandler.reload(localPool.size() / 2);
   for (auto [first, second] : localPool) {
     if (flag[first] && localPool.count(first) && localPool.count(second) &&
         flag[localPool[second]]) {
@@ -29,10 +30,10 @@ void EventHandler::doTest(std::unordered_map<int, DemoData> &data) {
   }
 }
 void EventHandler::outputTestResult(DemoData &data) {
-  fprintf(stdout, "Time delay: %d microsecond\n",
-          DemoData().diff(data.getHeader().timestamp, DemoData().now()));
-  fprintf(stdout, "Data content: %s\n",
-          data.getBody().content.substr(0, 10).c_str());
+  if (testDataHandler.accpet(data, data.now())) {
+    fprintf(stdout, "Average time delay: %s microsecond\n",
+            testDataHandler.generate().c_str());
+  }
 }
 void EventHandler::doRead(int fd, std::unordered_map<int, DemoData> &data) {
   if (fd == STDIN_FILENO) {

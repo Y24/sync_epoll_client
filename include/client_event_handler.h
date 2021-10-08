@@ -19,6 +19,7 @@
 #include "io_handler.h"
 #include "session_manager.h"
 #include "session_productor.h"
+#include "test_data_handler.h"
 class EventHandler {
  private:
   int epollFd;
@@ -29,6 +30,7 @@ class EventHandler {
   DataFactory factory;
   CommandHandler commandHandler;
   DirtyTalkGenerator talkGenerator;
+  TestDataHandler testDataHandler;
   /// clientfd: serverfd
   std::unordered_map<int, int> remotePool;
   /// clientfd: clientfd in the same session
